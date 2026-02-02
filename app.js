@@ -79,6 +79,131 @@ function savePreferences() {
   localStorage.setItem('multiWordMode', multiWordMode);
 }
 
+// Recent PDFs storage (last 2)
+const RECENT_PDFS_KEY = 'recentPdfs';
+const MAX_RECENT_PDFS = 2;
+
+function saveRecentPDF(filename, wordsArray) {
+  try {
+    let recentPdfs = JSON.parse(localStorage.getItem(RECENT_PDFS_KEY) || '[]');
+
+    // Remove if already exists
+    recentPdfs = recentPdfs.filter((pdf) => pdf.filename !== filename);
+
+    // Add new entry at the beginning
+    recentPdfs.unshift({
+      id: Date.now().toString(),
+      filename: filename,
+      timestamp: Date.now(),
+      wordCount: wordsArray.length,
+      words: wordsArray,
+    });
+
+    // Keep only the last 2
+    if (recentPdfs.length > MAX_RECENT_PDFS) {
+      recentPdfs = recentPdfs.slice(0, MAX_RECENT_PDFS);
+    }
+
+    localStorage.setItem(RECENT_PDFS_KEY, JSON.stringify(recentPdfs));
+    updateRecentPdfsUI();
+  } catch (error) {
+    console.error('Error saving recent PDF:', error);
+  }
+}
+
+function getRecentPdfs() {
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_PDFS_KEY) || '[]');
+  } catch (error) {
+    return [];
+  }
+}
+
+function loadRecentPDF(id) {
+  const recentPdfs = getRecentPdfs();
+  const pdf = recentPdfs.find((p) => p.id === id);
+  if (pdf && pdf.words && pdf.words.length > 0) {
+    words = pdf.words;
+    currentIndex = 0;
+    updateProgress();
+    if (multiWordMode) {
+      const allWords = multiWordDisplay.querySelectorAll('.multi-word');
+      allWords.forEach((word) => (word.textContent = ''));
+      multiWordDisplay.querySelector('.multi-word-center').textContent =
+        'Ready';
+    } else {
+      renderWord('Ready');
+    }
+    setStatus('Ready');
+    playButton.disabled = false;
+    resetButton.disabled = false;
+    if (progressSlider) {
+      progressSlider.disabled = false;
+      progressSlider.max = words.length;
+      progressSlider.value = 0;
+    }
+    return true;
+  }
+  return false;
+}
+
+function deleteRecentPDF(id) {
+  try {
+    let recentPdfs = getRecentPdfs();
+    recentPdfs = recentPdfs.filter((pdf) => pdf.id !== id);
+    localStorage.setItem(RECENT_PDFS_KEY, JSON.stringify(recentPdfs));
+    updateRecentPdfsUI();
+  } catch (error) {
+    console.error('Error deleting recent PDF:', error);
+  }
+}
+
+function updateRecentPdfsUI() {
+  const container = document.getElementById('recentPdfsContainer');
+  const list = document.getElementById('recentPdfsList');
+  if (!container || !list) return;
+
+  const pdfs = getRecentPdfs();
+
+  if (pdfs.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = 'flex';
+  list.innerHTML = '';
+
+  pdfs.forEach((pdf) => {
+    const item = document.createElement('div');
+    item.className = 'recent-pdf-item';
+
+    const loadBtn = document.createElement('button');
+    loadBtn.className = 'recent-pdf-load';
+    loadBtn.type = 'button';
+    loadBtn.innerHTML = `<span class="recent-pdf-name">${pdf.filename}</span><span class="recent-pdf-meta">${pdf.wordCount} words</span>`;
+    loadBtn.addEventListener('click', () => {
+      if (!loadRecentPDF(pdf.id)) {
+        renderWord('Failed to load');
+        setStatus('Error');
+      }
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'recent-pdf-delete';
+    deleteBtn.type = 'button';
+    deleteBtn.innerHTML = '×';
+    deleteBtn.title = 'Remove';
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteRecentPDF(pdf.id);
+    });
+
+    item.appendChild(loadBtn);
+    item.appendChild(deleteBtn);
+    list.appendChild(item);
+  });
+}
+
 function updateSpeedLabel() {
   speedValue.textContent = `${wpm} wpm`;
 }
@@ -339,6 +464,11 @@ async function handleFile(file) {
       progressSlider.max = words.length;
       progressSlider.value = 0;
     }
+
+    // Save to recent PDFs
+    if (words.length > 0) {
+      saveRecentPDF(file.name, words);
+    }
   } catch (error) {
     if (multiWordMode) {
       const allWords = multiWordDisplay.querySelectorAll('.multi-word');
@@ -573,3 +703,6 @@ if (progressSlider) {
   progressSlider.max = 0;
   progressSlider.value = 0;
 }
+
+// Initialize recent PDFs UI
+updateRecentPdfsUI();

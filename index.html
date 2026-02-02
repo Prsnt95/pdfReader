@@ -25,10 +25,16 @@
     </header>
 
     <section class="controls" id="controls">
-      <label class="file">
-        <input id="fileInput" type="file" accept="application/pdf" />
-        <span>Choose PDF</span>
-      </label>
+      <div class="file-section">
+        <label class="file">
+          <input id="fileInput" type="file" accept="application/pdf" />
+          <span>Choose PDF</span>
+        </label>
+        <div class="recent-pdfs" id="recentPdfsContainer" style="display: none;">
+          <span class="recent-label">Recent:</span>
+          <div class="recent-pdfs-list" id="recentPdfsList"></div>
+        </div>
+      </div>
 
       <div class="speed">
         <div class="speed-row">
