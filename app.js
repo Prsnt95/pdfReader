@@ -325,6 +325,23 @@ fileInput.addEventListener('change', async (event) => {
 playButton.addEventListener('click', togglePlayback);
 resetButton.addEventListener('click', resetReader);
 
+// Keyboard shortcuts
+document.addEventListener('keydown', (event) => {
+  // Prevent spacebar from scrolling when not in an input field
+  if (event.code === 'Space' || event.key === ' ') {
+    const target = event.target;
+    const isInputField =
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.isContentEditable;
+
+    if (!isInputField) {
+      event.preventDefault();
+      togglePlayback();
+    }
+  }
+});
+
 speedInput.addEventListener('input', (event) => {
   wpm = Number(event.target.value);
   updateSpeedLabel();
