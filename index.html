@@ -26,10 +26,13 @@
 
     <section class="controls" id="controls">
       <div class="file-section">
-        <label class="file">
-          <input id="fileInput" type="file" accept="application/pdf" />
-          <span>Choose PDF</span>
-        </label>
+        <div class="file-buttons">
+          <label class="file">
+            <input id="fileInput" type="file" accept="application/pdf" />
+            <span>Choose PDF</span>
+          </label>
+          <button id="previewButton" type="button" class="preview-btn" disabled>Preview & Select</button>
+        </div>
         <div class="recent-pdfs" id="recentPdfsContainer" style="display: none;">
           <span class="recent-label">Recent:</span>
           <div class="recent-pdfs-list" id="recentPdfsList"></div>
@@ -107,6 +110,46 @@
       </div>
     </section>
   </main>
+
+  <!-- PDF Preview Modal -->
+  <div class="pdf-preview-modal" id="pdfPreviewModal">
+    <div class="pdf-preview-content">
+      <div class="pdf-preview-header">
+        <div class="pdf-header-left">
+          <h2>PDF Preview</h2>
+          <p class="pdf-preview-hint">Click any text to start reading from there</p>
+        </div>
+        <button class="close-preview" id="closePreview" type="button">×</button>
+      </div>
+      
+      <div class="pdf-preview-body">
+        <div class="pdf-pages-sidebar" id="pdfPagesSidebar">
+          <div class="sidebar-header">Pages</div>
+          <div class="page-thumbnails" id="pageThumbnails"></div>
+        </div>
+        
+        <div class="pdf-main-view">
+          <div class="pdf-page-canvas-container" id="pdfPageCanvasContainer">
+            <canvas id="pdfPageCanvas"></canvas>
+            <div class="text-overlay" id="textOverlay"></div>
+          </div>
+          
+          <div class="page-navigation">
+            <button id="prevPage" type="button" disabled>‹ Previous</button>
+            <span class="page-info" id="pageInfo">Page 1 of 1</span>
+            <button id="nextPage" type="button" disabled>Next ›</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="pdf-preview-footer">
+        <button class="start-from-beginning" id="startFromBeginning" type="button">Start from Beginning</button>
+        <div class="selection-info" id="selectionInfo">
+          <span class="selection-text">No selection</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="app.js"></script>
