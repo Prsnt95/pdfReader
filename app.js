@@ -1,24 +1,68 @@
-const pdfjsLib = window["pdfjs-dist/build/pdf"];
+const pdfjsLib = window['pdfjs-dist/build/pdf'];
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-const fileInput = document.getElementById("fileInput");
-const wordEl = document.getElementById("word");
-const playButton = document.getElementById("playButton");
-const resetButton = document.getElementById("resetButton");
-const speedInput = document.getElementById("speedInput");
-const speedValue = document.getElementById("speedValue");
-const progressText = document.getElementById("progressText");
-const statusText = document.getElementById("statusText");
-const themeButton = document.getElementById("themeButton");
-const themeLabel = document.getElementById("themeLabel");
+const fileInput = document.getElementById('fileInput');
+const wordEl = document.getElementById('word');
+const playButton = document.getElementById('playButton');
+const resetButton = document.getElementById('resetButton');
+const speedInput = document.getElementById('speedInput');
+const speedValue = document.getElementById('speedValue');
+const colorInput = document.getElementById('colorInput');
+const sizeInput = document.getElementById('sizeInput');
+const sizeValue = document.getElementById('sizeValue');
+const multiWordToggle = document.getElementById('multiWordToggle');
+const multiWordDisplay = document.getElementById('multiWordDisplay');
+const wordContainer = document.querySelector('.word-container');
+const progressText = document.getElementById('progressText');
+const statusText = document.getElementById('statusText');
+const themeButton = document.getElementById('themeButton');
+const themeLabel = document.getElementById('themeLabel');
+const header = document.getElementById('header');
+const controls = document.getElementById('controls');
+const app = document.getElementById('app');
 
 let words = [];
 let currentIndex = 0;
 let isPlaying = false;
 let timerId = null;
 let wpm = Number(speedInput.value);
+let mouseTimeout = null;
+let isMouseActive = true;
+let multiWordMode = false;
+
+// Load saved preferences
+function loadPreferences() {
+  const savedColor = localStorage.getItem('wordColor');
+  const savedSize = localStorage.getItem('wordSize');
+  const savedMultiWord = localStorage.getItem('multiWordMode');
+
+  if (savedColor) {
+    colorInput.value = savedColor;
+    document.documentElement.style.setProperty('--word-color', savedColor);
+  }
+
+  if (savedSize) {
+    sizeInput.value = savedSize;
+    const sizePercent = savedSize / 100;
+    document.documentElement.style.setProperty('--word-size', sizePercent);
+    sizeValue.textContent = `${savedSize}%`;
+  }
+
+  if (savedMultiWord === 'true') {
+    multiWordMode = true;
+    multiWordToggle.checked = true;
+    toggleMultiWordMode();
+  }
+}
+
+// Save preferences
+function savePreferences() {
+  localStorage.setItem('wordColor', colorInput.value);
+  localStorage.setItem('wordSize', sizeInput.value);
+  localStorage.setItem('multiWordMode', multiWordMode);
+}
 
 function updateSpeedLabel() {
   speedValue.textContent = `${wpm} wpm`;
@@ -35,7 +79,48 @@ function setStatus(text) {
 }
 
 function renderWord(text) {
-  wordEl.textContent = text || "";
+  if (multiWordMode) {
+    renderMultiWord(text);
+  } else {
+    wordEl.textContent = text || '';
+  }
+}
+
+function renderMultiWord(text) {
+  const centerWord = multiWordDisplay.querySelector('.multi-word-center');
+  const left1Word = multiWordDisplay.querySelector('.multi-word-left-1');
+  const right1Word = multiWordDisplay.querySelector('.multi-word-right-1');
+
+  // Center word is the current word
+  centerWord.textContent = text || '';
+
+  // Previous word (last word)
+  left1Word.textContent = currentIndex > 0 ? words[currentIndex - 1] : '';
+
+  // Next word (upcoming word)
+  right1Word.textContent =
+    currentIndex < words.length - 1 ? words[currentIndex + 1] : '';
+}
+
+function toggleMultiWordMode() {
+  multiWordMode = multiWordToggle.checked;
+
+  if (multiWordMode) {
+    wordContainer.classList.add('multi-word-mode');
+    multiWordDisplay.classList.add('active');
+    // Initialize with current word and context
+    if (words.length > 0 && currentIndex < words.length) {
+      renderMultiWord(words[currentIndex]);
+    }
+  } else {
+    wordContainer.classList.remove('multi-word-mode');
+    multiWordDisplay.classList.remove('active');
+    // Clear multi-word display
+    const allWords = multiWordDisplay.querySelectorAll('.multi-word');
+    allWords.forEach((word) => (word.textContent = ''));
+  }
+
+  savePreferences();
 }
 
 function stopPlayback() {
@@ -44,7 +129,7 @@ function stopPlayback() {
     timerId = null;
   }
   isPlaying = false;
-  playButton.textContent = "Start";
+  playButton.textContent = 'Start';
 }
 
 function scheduleNext() {
@@ -61,7 +146,7 @@ function scheduleNext() {
 function showNextWord() {
   if (currentIndex >= words.length) {
     stopPlayback();
-    setStatus("Done");
+    setStatus('Done');
     return;
   }
 
@@ -80,8 +165,8 @@ function startPlayback() {
   }
 
   isPlaying = true;
-  playButton.textContent = "Pause";
-  setStatus("Playing");
+  playButton.textContent = 'Pause';
+  setStatus('Playing');
   scheduleNext();
 }
 
@@ -92,19 +177,25 @@ function togglePlayback() {
   }
 
   stopPlayback();
-  setStatus("Paused");
+  setStatus('Paused');
 }
 
 function resetReader() {
   stopPlayback();
   currentIndex = 0;
   updateProgress();
-  renderWord("Ready");
-  setStatus("Ready");
+  if (multiWordMode) {
+    const allWords = multiWordDisplay.querySelectorAll('.multi-word');
+    allWords.forEach((word) => (word.textContent = ''));
+    multiWordDisplay.querySelector('.multi-word-center').textContent = 'Ready';
+  } else {
+    renderWord('Ready');
+  }
+  setStatus('Ready');
 }
 
 async function extractWordsFromPdf(file) {
-  setStatus("Loading PDF...");
+  setStatus('Loading PDF...');
   const data = await file.arrayBuffer();
   const loadingTask = pdfjsLib.getDocument({ data });
   const pdf = await loadingTask.promise;
@@ -113,28 +204,28 @@ async function extractWordsFromPdf(file) {
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
     const page = await pdf.getPage(pageNum);
     const textContent = await page.getTextContent();
-    const pageText = textContent.items.map((item) => item.str).join(" ");
+    const pageText = textContent.items.map((item) => item.str).join(' ');
     if (pageText.trim()) {
       textChunks.push(pageText);
     }
   }
 
   return textChunks
-    .join(" ")
-    .replace(/\s+/g, " ")
+    .join(' ')
+    .replace(/\s+/g, ' ')
     .trim()
-    .split(" ")
+    .split(' ')
     .filter(Boolean);
 }
 
-fileInput.addEventListener("change", async (event) => {
+fileInput.addEventListener('change', async (event) => {
   const file = event.target.files[0];
   if (!file) {
     return;
   }
 
   stopPlayback();
-  renderWord("Parsing...");
+  renderWord('Parsing...');
   playButton.disabled = true;
   resetButton.disabled = true;
 
@@ -142,13 +233,27 @@ fileInput.addEventListener("change", async (event) => {
     words = await extractWordsFromPdf(file);
     currentIndex = 0;
     updateProgress();
-    renderWord(words.length ? "Ready" : "No text found");
-    setStatus(words.length ? "Ready" : "Empty");
+    if (multiWordMode) {
+      const allWords = multiWordDisplay.querySelectorAll('.multi-word');
+      allWords.forEach((word) => (word.textContent = ''));
+      multiWordDisplay.querySelector('.multi-word-center').textContent =
+        words.length ? 'Ready' : 'No text found';
+    } else {
+      renderWord(words.length ? 'Ready' : 'No text found');
+    }
+    setStatus(words.length ? 'Ready' : 'Empty');
     playButton.disabled = words.length === 0;
     resetButton.disabled = words.length === 0;
   } catch (error) {
-    renderWord("Failed to read PDF");
-    setStatus("Error");
+    if (multiWordMode) {
+      const allWords = multiWordDisplay.querySelectorAll('.multi-word');
+      allWords.forEach((word) => (word.textContent = ''));
+      multiWordDisplay.querySelector('.multi-word-center').textContent =
+        'Failed to read PDF';
+    } else {
+      renderWord('Failed to read PDF');
+    }
+    setStatus('Error');
     playButton.disabled = true;
     resetButton.disabled = true;
     // eslint-disable-next-line no-console
@@ -156,10 +261,10 @@ fileInput.addEventListener("change", async (event) => {
   }
 });
 
-playButton.addEventListener("click", togglePlayback);
-resetButton.addEventListener("click", resetReader);
+playButton.addEventListener('click', togglePlayback);
+resetButton.addEventListener('click', resetReader);
 
-speedInput.addEventListener("input", (event) => {
+speedInput.addEventListener('input', (event) => {
   wpm = Number(event.target.value);
   updateSpeedLabel();
   if (isPlaying) {
@@ -171,15 +276,67 @@ speedInput.addEventListener("input", (event) => {
   }
 });
 
+colorInput.addEventListener('input', (event) => {
+  const color = event.target.value;
+  document.documentElement.style.setProperty('--word-color', color);
+  savePreferences();
+});
+
+sizeInput.addEventListener('input', (event) => {
+  const size = Number(event.target.value);
+  const sizePercent = size / 100;
+  document.documentElement.style.setProperty('--word-size', sizePercent);
+  sizeValue.textContent = `${size}%`;
+  savePreferences();
+});
+
+multiWordToggle.addEventListener('change', toggleMultiWordMode);
+
 function toggleTheme() {
   const root = document.documentElement;
-  const isLight = root.dataset.theme === "light";
-  root.dataset.theme = isLight ? "dark" : "light";
-  themeLabel.textContent = root.dataset.theme === "light" ? "Light" : "Dark";
+  const isLight = root.dataset.theme === 'light';
+  root.dataset.theme = isLight ? 'dark' : 'light';
+  themeLabel.textContent = root.dataset.theme === 'light' ? 'Light' : 'Dark';
 }
 
-themeButton.addEventListener("click", toggleTheme);
+themeButton.addEventListener('click', toggleTheme);
+
+// Auto-hide controls on mouse inactivity
+function resetMouseTimer() {
+  isMouseActive = true;
+  header.classList.remove('hidden');
+  controls.classList.remove('hidden');
+
+  if (mouseTimeout) {
+    clearTimeout(mouseTimeout);
+  }
+
+  mouseTimeout = setTimeout(() => {
+    isMouseActive = false;
+    header.classList.add('hidden');
+    controls.classList.add('hidden');
+  }, 3000); // Hide after 3 seconds of inactivity
+}
+
+// Track mouse movement
+app.addEventListener('mousemove', resetMouseTimer);
+app.addEventListener('mouseenter', resetMouseTimer);
+
+// Show controls when interacting with them
+controls.addEventListener('mouseenter', () => {
+  resetMouseTimer();
+});
+
+header.addEventListener('mouseenter', () => {
+  resetMouseTimer();
+});
+
+// Initialize mouse timer
+resetMouseTimer();
+
+// Load preferences on startup
+loadPreferences();
 
 updateSpeedLabel();
 updateProgress();
-setStatus("Idle");
+setStatus('Idle');

@@ -10,8 +10,8 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <main class="app">
-    <header class="top">
+  <main class="app" id="app">
+    <header class="top" id="header">
       <div>
         <h1>One-Word PDF Reader</h1>
         <p class="sub">Upload a PDF and read it one word at a time.</p>
@@ -24,7 +24,7 @@
       </div>
     </header>
 
-    <section class="controls">
+    <section class="controls" id="controls">
       <label class="file">
         <input id="fileInput" type="file" accept="application/pdf" />
         <span>Choose PDF</span>
@@ -33,10 +33,40 @@
       <div class="speed">
         <div class="speed-row">
           <span>Speed</span>
-          <span id="speedValue">300 wpm</span>
+          <span id="speedValue">250 wpm</span>
         </div>
-        <input id="speedInput" type="range" min="60" max="900" step="10" value="300" />
+        <input id="speedInput" type="range" min="120" max="400" step="20" value="250" />
         <p class="hint">Adjust words per minute.</p>
+      </div>
+
+      <div class="text-color">
+        <div class="text-color-row">
+          <span>Text Color</span>
+        </div>
+        <input id="colorInput" type="color" value="#ffffff" />
+        <p class="hint">Choose text color.</p>
+      </div>
+
+      <div class="text-size">
+        <div class="text-size-row">
+          <span>Text Size</span>
+          <span id="sizeValue">100%</span>
+        </div>
+        <input id="sizeInput" type="range" min="50" max="200" step="10" value="100" />
+        <p class="hint">Adjust text size (50-200%).</p>
+      </div>
+
+      <div class="multi-word-toggle">
+        <div class="multi-word-row">
+          <span>Multi-Word</span>
+          <div class="toggle-switch">
+            <input id="multiWordToggle" type="checkbox" />
+            <label for="multiWordToggle">
+              <span class="knob"></span>
+            </label>
+          </div>
+        </div>
+        <p class="hint">Show 5 words with focus.</p>
       </div>
 
       <div class="buttons">
@@ -46,7 +76,14 @@
     </section>
 
     <section class="reader">
-      <div id="word" class="word">Upload a PDF to begin</div>
+      <div class="word-container">
+        <div id="word" class="word">Upload a PDF to begin</div>
+        <div class="multi-word-display" id="multiWordDisplay">
+          <span class="multi-word multi-word-left-1"></span>
+          <span class="multi-word multi-word-center"></span>
+          <span class="multi-word multi-word-right-1"></span>
+        </div>
+      </div>
       <div class="progress">
         <span id="progressText">0 / 0</span>
         <span id="statusText">Idle</span>
