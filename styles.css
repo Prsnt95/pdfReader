@@ -1,0 +1,205 @@
+:root {
+  --bg: #000000;
+  --panel: #0b0b0b;
+  --text: #ffffff;
+  --muted: #a7a7a7;
+  --border: #1e1e1e;
+  --accent: #ffffff;
+}
+
+:root[data-theme="light"] {
+  --bg: #ffffff;
+  --panel: #f2f2f2;
+  --text: #111111;
+  --muted: #5e5e5e;
+  --border: #dddddd;
+  --accent: #111111;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Space Grotesk", "IBM Plex Mono", system-ui, sans-serif;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 32px 28px 40px;
+  gap: 28px;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+h1 {
+  margin: 0 0 6px;
+  font-size: clamp(26px, 4vw, 40px);
+  letter-spacing: -0.02em;
+}
+
+.sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+#themeButton {
+  width: 48px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+}
+
+#themeButton .knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  transition: transform 0.2s ease;
+}
+
+:root[data-theme="light"] #themeButton .knob {
+  transform: translateX(22px);
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(200px, 1fr) minmax(180px, 220px);
+  gap: 18px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--panel);
+}
+
+.file {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+
+.file input {
+  display: none;
+}
+
+.speed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.speed-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+#speedInput {
+  width: 100%;
+}
+
+.hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+button {
+  font-family: "IBM Plex Mono", monospace;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.reader {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  text-align: center;
+}
+
+.word {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: clamp(32px, 12vw, 120px);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  min-height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+}
+
+.progress {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+@media (max-width: 880px) {
+  .controls {
+    grid-template-columns: 1fr;
+  }
+
+  .buttons {
+    justify-content: flex-start;
+  }
+}
