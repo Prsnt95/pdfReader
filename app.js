@@ -160,14 +160,39 @@ function stopPlayback() {
   playButton.textContent = 'Start';
 }
 
-function scheduleNext() {
+function getPunctuationDelay(word) {
+  if (!word) return 1;
+
+  const trimmedWord = word.trim();
+  const lastChar = trimmedWord[trimmedWord.length - 1];
+
+  // Sentence endings: period, exclamation, question mark
+  if (lastChar === '.' || lastChar === '!' || lastChar === '?') {
+    return 2.0; // 2x longer pause after sentences
+  }
+
+  // Clause separators: comma, semicolon, colon
+  if (lastChar === ',' || lastChar === ';' || lastChar === ':') {
+    return 1.5; // 1.5x longer pause after clauses
+  }
+
+  // Normal word
+  return 1.0;
+}
+
+function scheduleNext(wordToDisplay) {
   if (!isPlaying) {
     return;
   }
-  const delay = Math.max(1, Math.round(60000 / wpm));
+
+  // Check the word we're about to display for punctuation
+  const punctuationMultiplier = getPunctuationDelay(wordToDisplay);
+
+  const baseDelay = Math.max(1, Math.round(60000 / wpm));
+  const delay = Math.max(1, Math.round(baseDelay * punctuationMultiplier));
+
   timerId = setTimeout(() => {
     showNextWord();
-    scheduleNext();
   }, delay);
 }
 
@@ -183,9 +208,15 @@ function showNextWord() {
     return;
   }
 
-  renderWord(words[currentIndex]);
+  const wordToDisplay = words[currentIndex];
+  renderWord(wordToDisplay);
   currentIndex += 1;
   updateProgress();
+
+  // Schedule next word, checking the word we just displayed for punctuation
+  if (isPlaying) {
+    scheduleNext(wordToDisplay);
+  }
 }
 
 function startPlayback() {
@@ -200,7 +231,15 @@ function startPlayback() {
   isPlaying = true;
   playButton.textContent = 'Pause';
   setStatus('Playing');
-  scheduleNext();
+
+  // Start by displaying the first word immediately, then schedule next
+  if (currentIndex < words.length) {
+    const wordToDisplay = words[currentIndex];
+    renderWord(wordToDisplay);
+    currentIndex += 1;
+    updateProgress();
+    scheduleNext(wordToDisplay);
+  }
 }
 
 function togglePlayback() {
@@ -455,6 +494,7 @@ function resetMouseTimer() {
   if (progressSection) {
     progressSection.classList.remove('hidden');
   }
+  app.classList.remove('all-hidden');
 
   if (mouseTimeout) {
     clearTimeout(mouseTimeout);
@@ -467,6 +507,7 @@ function resetMouseTimer() {
     if (progressSection) {
       progressSection.classList.add('hidden');
     }
+    app.classList.add('all-hidden');
   }, 3000); // Hide after 3 seconds of inactivity
 }
 
