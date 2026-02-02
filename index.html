@@ -85,7 +85,7 @@
 
     <section class="reader">
       <div class="word-container">
-        <div id="word" class="word">Upload a PDF to begin</div>
+        <div id="word" class="word">Upload or drop a PDF to begin</div>
         <div class="multi-word-display" id="multiWordDisplay">
           <span class="multi-word multi-word-left-1"></span>
           <span class="multi-word multi-word-center"></span>
@@ -93,8 +93,11 @@
         </div>
       </div>
       <div class="progress">
-        <span id="progressText">0 / 0</span>
-        <span id="statusText">Idle</span>
+        <div class="progress-info">
+          <span id="progressText">0 / 0</span>
+          <span id="statusText">Idle</span>
+        </div>
+        <input id="progressSlider" type="range" min="0" max="0" value="0" />
       </div>
     </section>
   </main>

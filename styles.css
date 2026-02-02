@@ -34,6 +34,30 @@ body {
   min-height: 100vh;
   padding: 32px 16px 40px;
   gap: 28px;
+  transition: background-color 0.2s ease;
+}
+
+.app.drag-over {
+  background-color: var(--panel);
+  position: relative;
+}
+
+.app.drag-over::before {
+  content: 'Drop PDF here';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--accent);
+  z-index: 100;
+  pointer-events: none;
+  padding: 20px 40px;
+  border: 2px dashed var(--accent);
+  border-radius: 16px;
+  background: var(--bg);
+  opacity: 0.9;
 }
 
 .top {
@@ -341,11 +365,135 @@ button:disabled {
 
 .progress {
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 800px;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  transform: translateY(0);
+}
+
+.progress.hidden {
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+}
+
+.progress-info {
+  display: flex;
   gap: 16px;
   font-size: 13px;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.1em;
+}
+
+#progressSlider {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  transition: height 0.2s ease;
+}
+
+#progressSlider:hover {
+  height: 10px;
+}
+
+#progressSlider:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+#progressSlider:disabled:hover {
+  height: 8px;
+}
+
+#progressSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 3px solid var(--bg);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+}
+
+#progressSlider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+#progressSlider::-webkit-slider-thumb:active {
+  transform: scale(1.1);
+}
+
+#progressSlider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 3px solid var(--bg);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#progressSlider::-moz-range-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+#progressSlider::-moz-range-thumb:active {
+  transform: scale(1.1);
+}
+
+#progressSlider::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 8px;
+  cursor: pointer;
+  background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--progress-percent, 0%), var(--panel) var(--progress-percent, 0%), var(--panel) 100%);
+  border-radius: 4px;
+  transition: height 0.2s ease;
+}
+
+#progressSlider:hover::-webkit-slider-runnable-track {
+  height: 10px;
+}
+
+#progressSlider::-moz-range-track {
+  width: 100%;
+  height: 8px;
+  cursor: pointer;
+  background: var(--panel);
+  border-radius: 4px;
+  transition: height 0.2s ease;
+}
+
+#progressSlider:hover::-moz-range-track {
+  height: 10px;
+}
+
+/* Progress fill for Firefox */
+#progressSlider::-moz-range-progress {
+  background: var(--accent);
+  height: 8px;
+  border-radius: 4px;
+  transition: height 0.2s ease;
+}
+
+#progressSlider:hover::-moz-range-progress {
+  height: 10px;
 }
 
 @media (max-width: 1200px) {

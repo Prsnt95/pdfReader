@@ -18,6 +18,8 @@ const multiWordDisplay = document.getElementById('multiWordDisplay');
 const wordContainer = document.querySelector('.word-container');
 const progressText = document.getElementById('progressText');
 const statusText = document.getElementById('statusText');
+const progressSlider = document.getElementById('progressSlider');
+const progressSection = document.querySelector('.progress');
 const themeButton = document.getElementById('themeButton');
 const themeLabel = document.getElementById('themeLabel');
 const header = document.getElementById('header');
@@ -85,6 +87,19 @@ function updateProgress() {
   const total = words.length;
   const shown = Math.min(currentIndex, total);
   progressText.textContent = `${shown} / ${total}`;
+
+  // Update slider
+  if (progressSlider) {
+    progressSlider.max = total;
+    progressSlider.value = shown;
+
+    // Update progress fill percentage for visual feedback
+    const progressPercent = total > 0 ? (shown / total) * 100 : 0;
+    progressSlider.style.setProperty(
+      '--progress-percent',
+      `${progressPercent}%`
+    );
+  }
 }
 
 function setStatus(text) {
@@ -163,6 +178,11 @@ function showNextWord() {
     return;
   }
 
+  // Don't update if user is dragging the slider
+  if (isDraggingSlider) {
+    return;
+  }
+
   renderWord(words[currentIndex]);
   currentIndex += 1;
   updateProgress();
@@ -197,6 +217,9 @@ function resetReader() {
   stopPlayback();
   currentIndex = 0;
   updateProgress();
+  if (progressSlider) {
+    progressSlider.value = 0;
+  }
   if (multiWordMode) {
     const allWords = multiWordDisplay.querySelectorAll('.multi-word');
     allWords.forEach((word) => (word.textContent = ''));
@@ -231,9 +254,24 @@ async function extractWordsFromPdf(file) {
     .filter(Boolean);
 }
 
-fileInput.addEventListener('change', async (event) => {
-  const file = event.target.files[0];
+async function handleFile(file) {
   if (!file) {
+    return;
+  }
+
+  // Check if file is a PDF
+  if (
+    file.type !== 'application/pdf' &&
+    !file.name.toLowerCase().endsWith('.pdf')
+  ) {
+    renderWord('Please drop a PDF file');
+    setStatus('Invalid file type');
+    setTimeout(() => {
+      if (words.length === 0) {
+        renderWord('Upload or drop a PDF to begin');
+        setStatus('Idle');
+      }
+    }, 2000);
     return;
   }
 
@@ -257,6 +295,11 @@ fileInput.addEventListener('change', async (event) => {
     setStatus(words.length ? 'Ready' : 'Empty');
     playButton.disabled = words.length === 0;
     resetButton.disabled = words.length === 0;
+    if (progressSlider) {
+      progressSlider.disabled = words.length === 0;
+      progressSlider.max = words.length;
+      progressSlider.value = 0;
+    }
   } catch (error) {
     if (multiWordMode) {
       const allWords = multiWordDisplay.querySelectorAll('.multi-word');
@@ -272,6 +315,11 @@ fileInput.addEventListener('change', async (event) => {
     // eslint-disable-next-line no-console
     console.error(error);
   }
+}
+
+fileInput.addEventListener('change', async (event) => {
+  const file = event.target.files[0];
+  await handleFile(file);
 });
 
 playButton.addEventListener('click', togglePlayback);
@@ -311,6 +359,68 @@ sizeInput.addEventListener('input', (event) => {
 
 multiWordToggle.addEventListener('change', toggleMultiWordMode);
 
+// Progress slider functionality
+let isDraggingSlider = false;
+let wasPlayingBeforeDrag = false;
+
+progressSlider.addEventListener('mousedown', () => {
+  isDraggingSlider = true;
+  wasPlayingBeforeDrag = isPlaying;
+  if (isPlaying) {
+    stopPlayback();
+    setStatus('Seeking...');
+  }
+});
+
+progressSlider.addEventListener('touchstart', () => {
+  isDraggingSlider = true;
+  wasPlayingBeforeDrag = isPlaying;
+  if (isPlaying) {
+    stopPlayback();
+    setStatus('Seeking...');
+  }
+});
+
+progressSlider.addEventListener('input', (event) => {
+  const newIndex = Number(event.target.value);
+  currentIndex = newIndex;
+
+  // Render the word at the new position
+  if (words.length > 0 && currentIndex < words.length) {
+    renderWord(words[currentIndex]);
+  } else if (currentIndex >= words.length && words.length > 0) {
+    renderWord(words[words.length - 1]);
+  }
+
+  updateProgress();
+});
+
+progressSlider.addEventListener('mouseup', () => {
+  isDraggingSlider = false;
+
+  // Resume playback if it was playing before drag
+  if (wasPlayingBeforeDrag && currentIndex < words.length) {
+    startPlayback();
+  } else if (currentIndex >= words.length) {
+    setStatus('Done');
+  } else if (!isPlaying) {
+    setStatus('Paused');
+  }
+});
+
+progressSlider.addEventListener('touchend', () => {
+  isDraggingSlider = false;
+
+  // Resume playback if it was playing before drag
+  if (wasPlayingBeforeDrag && currentIndex < words.length) {
+    startPlayback();
+  } else if (currentIndex >= words.length) {
+    setStatus('Done');
+  } else if (!isPlaying) {
+    setStatus('Paused');
+  }
+});
+
 function toggleTheme() {
   const root = document.documentElement;
   const isLight = root.dataset.theme === 'light';
@@ -325,6 +435,9 @@ function resetMouseTimer() {
   isMouseActive = true;
   header.classList.remove('hidden');
   controls.classList.remove('hidden');
+  if (progressSection) {
+    progressSection.classList.remove('hidden');
+  }
 
   if (mouseTimeout) {
     clearTimeout(mouseTimeout);
@@ -334,6 +447,9 @@ function resetMouseTimer() {
     isMouseActive = false;
     header.classList.add('hidden');
     controls.classList.add('hidden');
+    if (progressSection) {
+      progressSection.classList.add('hidden');
+    }
   }, 3000); // Hide after 3 seconds of inactivity
 }
 
@@ -350,8 +466,41 @@ header.addEventListener('mouseenter', () => {
   resetMouseTimer();
 });
 
+if (progressSection) {
+  progressSection.addEventListener('mouseenter', () => {
+    resetMouseTimer();
+  });
+}
+
 // Initialize mouse timer
 resetMouseTimer();
+
+// Drag and drop functionality
+app.addEventListener('dragover', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  app.classList.add('drag-over');
+});
+
+app.addEventListener('dragleave', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  // Only remove drag-over if we're leaving the app element itself
+  if (!app.contains(event.relatedTarget)) {
+    app.classList.remove('drag-over');
+  }
+});
+
+app.addEventListener('drop', async (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  app.classList.remove('drag-over');
+
+  const files = event.dataTransfer.files;
+  if (files.length > 0) {
+    await handleFile(files[0]);
+  }
+});
 
 // Load preferences on startup
 loadPreferences();
@@ -359,3 +508,10 @@ loadPreferences();
 updateSpeedLabel();
 updateProgress();
 setStatus('Idle');
+
+// Initialize slider as disabled
+if (progressSlider) {
+  progressSlider.disabled = true;
+  progressSlider.max = 0;
+  progressSlider.value = 0;
+}
