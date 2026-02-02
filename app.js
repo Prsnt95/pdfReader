@@ -10,6 +10,7 @@ const resetButton = document.getElementById('resetButton');
 const speedInput = document.getElementById('speedInput');
 const speedValue = document.getElementById('speedValue');
 const colorInput = document.getElementById('colorInput');
+const bgColorInput = document.getElementById('bgColorInput');
 const sizeInput = document.getElementById('sizeInput');
 const sizeValue = document.getElementById('sizeValue');
 const multiWordToggle = document.getElementById('multiWordToggle');
@@ -35,12 +36,23 @@ let multiWordMode = false;
 // Load saved preferences
 function loadPreferences() {
   const savedColor = localStorage.getItem('wordColor');
+  const savedBgColor = localStorage.getItem('bgColor');
   const savedSize = localStorage.getItem('wordSize');
   const savedMultiWord = localStorage.getItem('multiWordMode');
 
   if (savedColor) {
     colorInput.value = savedColor;
     document.documentElement.style.setProperty('--word-color', savedColor);
+  }
+
+  if (savedBgColor) {
+    bgColorInput.value = savedBgColor;
+    document.documentElement.style.setProperty('--bg', savedBgColor);
+  } else {
+    // Set default based on current theme
+    const isLight = document.documentElement.dataset.theme === 'light';
+    const defaultBg = isLight ? '#ffffff' : '#000000';
+    bgColorInput.value = defaultBg;
   }
 
   if (savedSize) {
@@ -60,6 +72,7 @@ function loadPreferences() {
 // Save preferences
 function savePreferences() {
   localStorage.setItem('wordColor', colorInput.value);
+  localStorage.setItem('bgColor', bgColorInput.value);
   localStorage.setItem('wordSize', sizeInput.value);
   localStorage.setItem('multiWordMode', multiWordMode);
 }
@@ -279,6 +292,12 @@ speedInput.addEventListener('input', (event) => {
 colorInput.addEventListener('input', (event) => {
   const color = event.target.value;
   document.documentElement.style.setProperty('--word-color', color);
+  savePreferences();
+});
+
+bgColorInput.addEventListener('input', (event) => {
+  const color = event.target.value;
+  document.documentElement.style.setProperty('--bg', color);
   savePreferences();
 });
 
