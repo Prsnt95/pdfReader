@@ -449,24 +449,24 @@ async function extractWordsFromPdf(file) {
   const data = await file.arrayBuffer();
   const loadingTask = pdfjsLib.getDocument({ data });
   const pdf = await loadingTask.promise;
-  
+
   loadedPdfDoc = pdf;
-  
+
   let allWords = [];
   pageWordIndices = [];
   pageTextContent = []; // Store raw text items per page
 
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
     pageWordIndices.push(allWords.length);
-    
+
     const page = await pdf.getPage(pageNum);
     const textContent = await page.getTextContent();
     pageTextContent[pageNum] = textContent.items;
-    
+
     // Exact same splitting logic used in the preview layer
-    textContent.items.forEach(item => {
+    textContent.items.forEach((item) => {
       const parts = item.str.split(/(\s+)/);
-      parts.forEach(part => {
+      parts.forEach((part) => {
         if (part.trim()) {
           allWords.push(part.trim());
         }
@@ -707,6 +707,7 @@ function resetMouseTimer() {
     progressSection.classList.remove('hidden');
   }
   app.classList.remove('all-hidden');
+  document.body.classList.remove('document-floating');
 
   if (mouseTimeout) {
     clearTimeout(mouseTimeout);
@@ -720,6 +721,9 @@ function resetMouseTimer() {
       progressSection.classList.add('hidden');
     }
     app.classList.add('all-hidden');
+    if (isPreviewOpen()) {
+      document.body.classList.add('document-floating');
+    }
   }, 3000); // Hide after 3 seconds of inactivity
 }
 
@@ -740,6 +744,11 @@ if (progressSection) {
   progressSection.addEventListener('mouseenter', () => {
     resetMouseTimer();
   });
+}
+
+if (pdfPreviewModal) {
+  pdfPreviewModal.addEventListener('mouseenter', resetMouseTimer);
+  pdfPreviewModal.addEventListener('mousemove', resetMouseTimer);
 }
 
 // Initialize mouse timer
@@ -797,10 +806,12 @@ updatePreviewToggleButton();
 // Open the PDF preview modal
 function openPdfPreview() {
   if (!loadedPdfDoc) return;
-  
+
   pdfPreviewModal.classList.add('active');
   document.body.classList.add('preview-open');
+  document.body.classList.remove('document-floating');
   updatePreviewToggleButton();
+  resetMouseTimer();
 
   const fallbackIndex =
     lastRenderedIndex !== null
@@ -809,11 +820,8 @@ function openPdfPreview() {
   previewCurrentPage = words.length ? getPageForWordIndex(fallbackIndex) : 1;
   selectedTextBlockIndex = null;
   updateSelectionInfo();
-  
-  // Generate thumbnails
-  generateThumbnails();
-  
-  // Render the target page with current word highlight
+
+  // Document-only: just the PDF synced to current word (no thumbnails/chrome)
   renderPreviewPage(previewCurrentPage, fallbackIndex);
 }
 
@@ -821,46 +829,48 @@ function openPdfPreview() {
 function closePdfPreview() {
   pdfPreviewModal.classList.remove('active');
   document.body.classList.remove('preview-open');
+  document.body.classList.remove('document-floating');
   updatePreviewToggleButton();
   textOverlay.innerHTML = '';
+  resetMouseTimer();
 }
 
 // Generate page thumbnails
 async function generateThumbnails() {
   pageThumbnails.innerHTML = '';
-  
+
   for (let i = 1; i <= loadedPdfDoc.numPages; i++) {
     const page = await loadedPdfDoc.getPage(i);
     const viewport = page.getViewport({ scale: 0.2 });
-    
+
     const thumbDiv = document.createElement('div');
     thumbDiv.className =
       'page-thumbnail' + (i === previewCurrentPage ? ' active' : '');
     thumbDiv.dataset.page = i;
-    
+
     const canvas = document.createElement('canvas');
     canvas.width = viewport.width;
     canvas.height = viewport.height;
-    
+
     const ctx = canvas.getContext('2d');
     await page.render({
       canvasContext: ctx,
-      viewport: viewport
+      viewport: viewport,
     }).promise;
-    
+
     const pageNum = document.createElement('span');
     pageNum.className = 'page-thumbnail-number';
     pageNum.textContent = i;
-    
+
     thumbDiv.appendChild(canvas);
     thumbDiv.appendChild(pageNum);
-    
+
     thumbDiv.addEventListener('click', () => {
       previewCurrentPage = i;
       renderPreviewPage(i, lastRenderedIndex);
       updateThumbnailSelection();
     });
-    
+
     pageThumbnails.appendChild(thumbDiv);
   }
 }
@@ -869,7 +879,10 @@ async function generateThumbnails() {
 function updateThumbnailSelection() {
   const thumbs = pageThumbnails.querySelectorAll('.page-thumbnail');
   thumbs.forEach((thumb) => {
-    thumb.classList.toggle('active', parseInt(thumb.dataset.page) === previewCurrentPage);
+    thumb.classList.toggle(
+      'active',
+      parseInt(thumb.dataset.page) === previewCurrentPage
+    );
   });
 }
 
@@ -878,59 +891,63 @@ function createTextOverlay(items, viewport, pageNum) {
   textOverlay.innerHTML = '';
   textOverlay.style.width = viewport.width + 'px';
   textOverlay.style.height = viewport.height + 'px';
-  
+
   let globalWordCounter = pageWordIndices[pageNum - 1] || 0;
-  
+
   items.forEach((item) => {
     if (!item.str.trim()) return;
-    
+
     const tx = item.transform;
     const x = tx[4] * (viewport.scale / (tx[0] || 1)); // Handle potential scaling in transform
-    const y = viewport.height - (tx[5] * viewport.scale) - (item.height * viewport.scale);
-    
+    const y =
+      viewport.height - tx[5] * viewport.scale - item.height * viewport.scale;
+
     // Split item into words while keeping track of current global index
     const parts = item.str.split(/(\s+)/);
     let currentXOffset = 0;
-    
-    parts.forEach(part => {
+
+    parts.forEach((part) => {
       if (part.trim()) {
         const wordDiv = document.createElement('div');
         wordDiv.className = 'text-word';
         wordDiv.textContent = part.trim();
-        
+
         // Approximate word positioning within the item
-        const wordWidth = (item.width * viewport.scale) * (part.length / item.str.length);
+        const wordWidth =
+          item.width * viewport.scale * (part.length / item.str.length);
         const wordHeight = item.height * viewport.scale;
-        
-        wordDiv.style.left = (tx[4] * viewport.scale + currentXOffset) + 'px';
-        wordDiv.style.top = (viewport.height - tx[5] * viewport.scale - wordHeight) + 'px';
+
+        wordDiv.style.left = tx[4] * viewport.scale + currentXOffset + 'px';
+        wordDiv.style.top =
+          viewport.height - tx[5] * viewport.scale - wordHeight + 'px';
         wordDiv.style.width = wordWidth + 'px';
         wordDiv.style.height = wordHeight + 'px';
-        
+
         const wordIndex = globalWordCounter++;
         wordDiv.dataset.index = wordIndex;
-        
+
         wordDiv.addEventListener('mouseover', () => {
           if (!wordDiv.classList.contains('selected')) {
             wordDiv.style.background = 'rgba(99, 102, 241, 0.2)';
           }
         });
-        
+
         wordDiv.addEventListener('mouseout', () => {
           if (!wordDiv.classList.contains('selected')) {
             wordDiv.style.background = '';
           }
         });
-        
+
         wordDiv.addEventListener('click', () => {
           handleWordClick(wordIndex, part.trim());
         });
-        
+
         textOverlay.appendChild(wordDiv);
         currentXOffset += wordWidth;
       } else {
         // Space offset
-        currentXOffset += (item.width * viewport.scale) * (part.length / item.str.length);
+        currentXOffset +=
+          item.width * viewport.scale * (part.length / item.str.length);
       }
     });
   });
@@ -938,11 +955,11 @@ function createTextOverlay(items, viewport, pageNum) {
 
 function handleWordClick(index, text) {
   const words = textOverlay.querySelectorAll('.text-word');
-  words.forEach(w => w.classList.remove('selected'));
-  
+  words.forEach((w) => w.classList.remove('selected'));
+
   const selectedEl = textOverlay.querySelector(`[data-index="${index}"]`);
   if (selectedEl) selectedEl.classList.add('selected');
-  
+
   selectedTextBlockIndex = index;
   updateSelectionInfo(text, index);
 }
@@ -980,7 +997,7 @@ function ensureWordVisible(wordElement) {
     wordElement.scrollIntoView({
       block: 'center',
       inline: 'center',
-      behavior: 'smooth'
+      behavior: 'smooth',
     });
   }
 }
@@ -1001,36 +1018,40 @@ function highlightWordInPreview(wordIndex, shouldScroll = false) {
 // Update a preview page with text overlay
 async function renderPreviewPage(pageNum, highlightIndex = null) {
   if (!loadedPdfDoc) return;
-  
+
   const page = await loadedPdfDoc.getPage(pageNum);
-  
+
   const container = document.getElementById('pdfPageCanvasContainer');
-  const containerWidth = container.clientWidth - 40;
-  const containerHeight = container.clientHeight - 40;
-  
+  const containerWidth = Math.max(container.clientWidth, 1);
+  const containerHeight = Math.max(container.clientHeight, 1);
+
   const baseViewport = page.getViewport({ scale: 1 });
   const scaleY = containerHeight / baseViewport.height;
   const scaleX = containerWidth / baseViewport.width;
-  const fitScale = Math.min(scaleX, scaleY);
-  const scale = Math.max(fitScale, 1.0);
-  
+  let scale = Math.min(scaleX, scaleY);
+  if (!Number.isFinite(scale) || scale <= 0) {
+    scale = 1;
+  }
+
+  scale = Math.max(scale, 0.1);
+
   const viewport = page.getViewport({ scale });
-  
+
   pdfPageCanvas.width = viewport.width;
   pdfPageCanvas.height = viewport.height;
-  
+
   const ctx = pdfPageCanvas.getContext('2d');
   await page.render({
     canvasContext: ctx,
-    viewport: viewport
+    viewport: viewport,
   }).promise;
-  
+
   // Use stored items for consistent word mapping
   const items = pageTextContent[pageNum];
   createTextOverlay(items, viewport, pageNum);
-  
+
   updatePageNavigation();
-  
+
   if (highlightIndex !== null && isWordOnPage(highlightIndex, pageNum)) {
     highlightWordInPreview(highlightIndex, true);
   } else if (
@@ -1064,7 +1085,7 @@ async function syncPreviewToWordIndex(wordIndex) {
 function updateSelectionInfo(text = null, wordIndex = null) {
   const selectionText = selectionInfoEl.querySelector('.selection-text');
   let startBtn = selectionInfoEl.querySelector('.start-reading-btn');
-  
+
   if (!startBtn) {
     startBtn = document.createElement('button');
     startBtn.className = 'start-reading-btn';
@@ -1072,7 +1093,7 @@ function updateSelectionInfo(text = null, wordIndex = null) {
     startBtn.addEventListener('click', startReadingFromSelection);
     selectionInfoEl.appendChild(startBtn);
   }
-  
+
   if (text && wordIndex !== null) {
     const preview = text.substring(0, 50) + (text.length > 50 ? '...' : '');
     selectionText.textContent = `"${preview}" (word ${wordIndex + 1})`;
@@ -1086,20 +1107,25 @@ function updateSelectionInfo(text = null, wordIndex = null) {
 // Start reading from the selected text block
 function startReadingFromSelection() {
   if (selectedTextBlockIndex !== null) {
+    stopPlayback();
     currentIndex = selectedTextBlockIndex;
     updateProgress();
-    
+
     if (progressSlider) {
       progressSlider.value = currentIndex;
     }
-    
+
     // Show the current word
     if (words.length > 0 && currentIndex < words.length) {
       renderWord(words[currentIndex]);
       setRenderedIndex(currentIndex);
     }
-    
-    setStatus('Ready');
+
+    playButton.disabled = false;
+    resetButton.disabled = false;
+    setStatus('Playing');
+    resetMouseTimer();
+    startPlayback();
   }
 }
 
@@ -1132,16 +1158,16 @@ function goToNextPage() {
 function startFromBeginning() {
   currentIndex = 0;
   updateProgress();
-  
+
   if (progressSlider) {
     progressSlider.value = 0;
   }
-  
+
   if (words.length > 0) {
     renderWord('Ready');
     setRenderedIndex(0);
   }
-  
+
   setStatus('Ready');
 }
 

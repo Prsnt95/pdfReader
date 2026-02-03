@@ -5,7 +5,8 @@
   --muted: #a7a7a7;
   --border: #1e1e1e;
   --accent: #ffffff;
-  --preview-width: clamp(320px, 32vw, 480px);
+  --preview-width: clamp(420px, 52vw, 720px);
+  --float-preview-width: clamp(220px, 32vw, 280px);
 }
 
 :root[data-theme="light"] {
@@ -57,17 +58,101 @@ body {
   justify-content: center;
 }
 
+/* PDF panel on the right; reserve space so it doesn't overlap settings */
 body.preview-open .app {
-  padding-right: calc(16px + var(--preview-width));
-}
-
-body.preview-open .app.all-hidden {
-  padding-right: var(--preview-width);
+  padding-right: 0;
+  margin-right: var(--preview-width);
 }
 
 body.preview-open .app.all-hidden .reader {
-  right: var(--preview-width);
-  width: calc(100vw - var(--preview-width));
+  right: 0;
+  width: 100vw;
+}
+
+/* Compact floating document view when UI is hidden */
+body.document-floating .app {
+  padding: 0;
+  gap: 0;
+  margin-right: 0;
+}
+
+body.document-floating .pdf-preview-modal {
+  width: var(--float-preview-width);
+  height: min(calc(var(--float-preview-width) * 1.4), 45vh);
+  top: auto;
+  bottom: 24px;
+  right: 24px;
+  left: auto;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  transform: translateX(0);
+  pointer-events: auto;
+  overflow: hidden;
+  background: var(--panel);
+}
+
+body.document-floating .pdf-preview-modal .pdf-preview-content {
+  border-radius: inherit;
+}
+
+body.document-floating .pdf-preview-modal .pdf-preview-header,
+body.document-floating .pdf-preview-modal .pdf-pages-sidebar,
+body.document-floating .pdf-preview-modal .page-navigation {
+  display: none;
+}
+
+body.document-floating .pdf-preview-modal .pdf-preview-body {
+  flex: 1;
+}
+
+body.document-floating .pdf-preview-modal .pdf-main-view {
+  padding: 0;
+  margin: 0;
+}
+
+body.document-floating .pdf-preview-modal .pdf-page-canvas-container {
+  flex: 1;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: visible;
+  padding: 4px 0;
+}
+
+body.document-floating .pdf-preview-modal .pdf-preview-footer {
+  padding: 6px 10px;
+  border-top: 1px solid var(--border);
+  background: transparent;
+}
+
+body.document-floating .pdf-preview-modal .selection-info {
+  justify-content: center;
+}
+
+body.document-floating .pdf-preview-modal .selection-text {
+  font-size: 9px;
+}
+
+body.document-floating .pdf-preview-modal:not(.active) {
+  display: none;
+}
+
+body.document-floating #pdfPageCanvas {
+  box-shadow: none;
+}
+
+body.document-floating .text-overlay {
+  top: 8px;
+}
+
+@media (max-width: 640px) {
+  body.document-floating .pdf-preview-modal {
+    width: calc(100vw - 32px);
+    height: min(calc((100vw - 32px) * 1.4), 55vh);
+    right: 16px;
+    left: 16px;
+    bottom: 16px;
+  }
 }
 
 .app.drag-over {
@@ -167,6 +252,11 @@ h1 {
   background: var(--panel);
   transition: opacity 0.4s ease, transform 0.4s ease;
   transform: translateY(0);
+}
+
+/* When the preview panel is open, give controls more room by allowing them to wrap */
+body.preview-open .controls {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
 .controls.hidden {
@@ -622,13 +712,15 @@ button:disabled {
 }
 
 @media (max-width: 1200px) {
-  .controls {
+  .controls,
+  body.preview-open .controls {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 880px) {
-  .controls {
+  .controls,
+  body.preview-open .controls {
     grid-template-columns: 1fr;
   }
 
@@ -692,6 +784,8 @@ button:disabled {
   pointer-events: auto;
 }
 
+/* Document-only mode removed so users keep access to preview controls */
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -711,6 +805,18 @@ button:disabled {
   min-height: 0;
 }
 
+:root[data-theme="dark"] body.preview-open .pdf-preview-modal {
+  background: #050505;
+}
+
+:root[data-theme="dark"] body.preview-open .pdf-main-view {
+  background: #050505;
+}
+
+:root[data-theme="dark"] body.preview-open .pdf-page-canvas-container {
+  filter: invert(0.92) hue-rotate(180deg);
+}
+
 @keyframes slideUp {
   from {
     opacity: 0;
@@ -723,7 +829,7 @@ button:disabled {
 }
 
 .pdf-preview-header {
-  padding: 12px 20px;
+  padding: 6px 10px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -734,7 +840,7 @@ button:disabled {
 
 .pdf-preview-header h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
@@ -742,8 +848,8 @@ button:disabled {
 .pdf-preview-hint {
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
-  margin-left: 16px;
+  font-size: 10px;
+  margin-left: 10px;
 }
 
 .pdf-header-left {
@@ -752,13 +858,13 @@ button:disabled {
 }
 
 .close-preview {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text);
-  font-size: 20px;
+  font-size: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -780,8 +886,8 @@ button:disabled {
 
 /* Pages Sidebar */
 .pdf-pages-sidebar {
-  width: 120px;
-  min-width: 120px;
+  width: 64px;
+  min-width: 64px;
   border-right: 1px solid var(--border);
   background: var(--panel);
   display: flex;
@@ -789,11 +895,11 @@ button:disabled {
 }
 
 .sidebar-header {
-  padding: 12px 14px;
-  font-size: 11px;
+  padding: 6px 8px;
+  font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: var(--muted);
   border-bottom: 1px solid var(--border);
 }
@@ -801,16 +907,16 @@ button:disabled {
 .page-thumbnails {
   flex: 1;
   overflow-y: auto;
-  padding: 10px;
+  padding: 6px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .page-thumbnail {
   position: relative;
-  border-radius: 4px;
-  border: 2px solid var(--border);
+  border-radius: 2px;
+  border: 1px solid var(--border);
   overflow: hidden;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -823,7 +929,7 @@ button:disabled {
 
 .page-thumbnail.active {
   border-color: #6366f1;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3);
 }
 
 .page-thumbnail canvas {
@@ -834,14 +940,14 @@ button:disabled {
 
 .page-thumbnail-number {
   position: absolute;
-  bottom: 4px;
-  right: 4px;
+  bottom: 2px;
+  right: 2px;
   background: rgba(0, 0, 0, 0.7);
   color: white;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 1px 4px;
+  border-radius: 2px;
 }
 
 /* Main View */
@@ -851,22 +957,23 @@ button:disabled {
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  background: #525659;
+  background: #ffffff;
   min-width: 0;
 }
 
 :root[data-theme="light"] .pdf-main-view {
-  background: #808080;
+  background: #ffffff;
 }
 
 .pdf-page-canvas-container {
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 20px;
+  padding: 0;
   position: relative;
+  min-height: 0;
 }
 
 #pdfPageCanvas {
@@ -877,7 +984,7 @@ button:disabled {
 /* Text Overlay for Selection */
 .text-overlay {
   position: absolute;
-  top: 20px; /* Aligned with canvas padding */
+  top: 8px;
   left: 50%;
   transform: translateX(-50%);
   pointer-events: all;
@@ -909,23 +1016,23 @@ button:disabled {
 
 /* Page Navigation */
 .page-navigation {
-  padding: 10px 20px;
+  padding: 6px 10px;
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
   background: var(--panel);
   flex-shrink: 0;
 }
 
 .page-navigation button {
-  padding: 8px 16px;
-  border-radius: 6px;
+  padding: 4px 10px;
+  border-radius: 4px;
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text);
-  font-size: 13px;
+  font-size: 11px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -941,31 +1048,31 @@ button:disabled {
 }
 
 .page-info {
-  font-size: 13px;
+  font-size: 11px;
   color: var(--muted);
-  min-width: 100px;
+  min-width: 70px;
   text-align: center;
 }
 
 /* PDF Preview Footer */
 .pdf-preview-footer {
-  padding: 12px 20px;
+  padding: 6px 10px;
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 8px;
   background: var(--panel);
   flex-shrink: 0;
 }
 
 .start-from-beginning {
-  padding: 10px 20px;
-  border-radius: 8px;
+  padding: 6px 12px;
+  border-radius: 6px;
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text);
-  font-size: 13px;
+  font-size: 11px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -978,17 +1085,17 @@ button:disabled {
 .selection-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   flex: 1;
   justify-content: flex-end;
 }
 
 .selection-text {
-  font-size: 12px;
+  font-size: 10px;
   color: var(--muted);
-  padding: 6px 12px;
+  padding: 4px 8px;
   background: var(--bg);
-  border-radius: 6px;
+  border-radius: 4px;
   border: 1px solid var(--border);
   max-width: 100%;
   overflow: hidden;
@@ -997,12 +1104,12 @@ button:disabled {
 }
 
 .selection-info .start-reading-btn {
-  padding: 10px 20px;
-  border-radius: 10px;
+  padding: 6px 12px;
+  border-radius: 6px;
   border: none;
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   color: white;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1021,16 +1128,8 @@ button:disabled {
 /* Responsive adjustments */
 @media (max-width: 900px) {
   body.preview-open .app {
-    padding-right: 16px;
-  }
-
-  body.preview-open .app.all-hidden {
     padding-right: 0;
-  }
-
-  body.preview-open .app.all-hidden .reader {
-    right: 0;
-    width: 100vw;
+    margin-right: 0;
   }
 
   .pdf-preview-modal {
