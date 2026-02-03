@@ -6,7 +6,6 @@
   --border: #1e1e1e;
   --accent: #ffffff;
   --preview-width: clamp(420px, 52vw, 720px);
-  --float-preview-width: clamp(220px, 32vw, 280px);
 }
 
 :root[data-theme="light"] {
@@ -69,68 +68,78 @@ body.preview-open .app.all-hidden .reader {
   width: 100vw;
 }
 
-/* Compact floating document view when UI is hidden */
+/* When floating, reader stays left of PDF so word isn't cut off */
+body.preview-open.document-floating .app.all-hidden .reader {
+  right: var(--preview-width);
+  width: auto;
+}
+
+/* Document-only view when UI is hidden: same size, no chrome */
 body.document-floating .app {
   padding: 0;
   gap: 0;
   margin-right: 0;
 }
 
+/* Hide header/controls/progress from layout so no border/empty frame */
+body.document-floating .top,
+body.document-floating .controls,
+body.document-floating .progress {
+  display: none;
+}
+
+body.document-floating .reader,
+body.document-floating .word-container,
+body.document-floating .word,
+body.document-floating .multi-word-display,
+body.document-floating .multi-word {
+  overflow: visible;
+}
+
 body.document-floating .pdf-preview-modal {
-  width: var(--float-preview-width);
-  height: min(calc(var(--float-preview-width) * 1.4), 45vh);
-  top: auto;
-  bottom: 24px;
-  right: 24px;
+  width: var(--preview-width);
+  top: 0;
+  right: 0;
+  bottom: 0;
   left: auto;
-  border-radius: 18px;
-  border: 1px solid var(--border);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   transform: translateX(0);
   pointer-events: auto;
   overflow: hidden;
   background: var(--panel);
 }
 
-body.document-floating .pdf-preview-modal .pdf-preview-content {
-  border-radius: inherit;
-}
-
 body.document-floating .pdf-preview-modal .pdf-preview-header,
 body.document-floating .pdf-preview-modal .pdf-pages-sidebar,
-body.document-floating .pdf-preview-modal .page-navigation {
+body.document-floating .pdf-preview-modal .page-navigation,
+body.document-floating .pdf-preview-modal .pdf-preview-footer {
   display: none;
+}
+
+body.document-floating .pdf-preview-modal .pdf-preview-content,
+body.document-floating .pdf-preview-modal .pdf-preview-body,
+body.document-floating .pdf-preview-modal .pdf-main-view,
+body.document-floating .pdf-preview-modal .pdf-page-canvas-container {
+  padding: 0;
+  margin: 0;
 }
 
 body.document-floating .pdf-preview-modal .pdf-preview-body {
   flex: 1;
+  min-height: 0;
 }
 
 body.document-floating .pdf-preview-modal .pdf-main-view {
-  padding: 0;
-  margin: 0;
+  flex: 1;
 }
 
 body.document-floating .pdf-preview-modal .pdf-page-canvas-container {
   flex: 1;
   justify-content: center;
   align-items: flex-start;
-  overflow: visible;
-  padding: 4px 0;
-}
-
-body.document-floating .pdf-preview-modal .pdf-preview-footer {
-  padding: 6px 10px;
-  border-top: 1px solid var(--border);
-  background: transparent;
-}
-
-body.document-floating .pdf-preview-modal .selection-info {
-  justify-content: center;
-}
-
-body.document-floating .pdf-preview-modal .selection-text {
-  font-size: 9px;
+  overflow: auto;
 }
 
 body.document-floating .pdf-preview-modal:not(.active) {
@@ -142,17 +151,7 @@ body.document-floating #pdfPageCanvas {
 }
 
 body.document-floating .text-overlay {
-  top: 8px;
-}
-
-@media (max-width: 640px) {
-  body.document-floating .pdf-preview-modal {
-    width: calc(100vw - 32px);
-    height: min(calc((100vw - 32px) * 1.4), 55vh);
-    right: 16px;
-    left: 16px;
-    bottom: 16px;
-  }
+  top: 0;
 }
 
 .app.drag-over {
