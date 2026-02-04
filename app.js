@@ -35,6 +35,7 @@ const textOverlay = document.getElementById('textOverlay');
 const prevPageBtn = document.getElementById('prevPage');
 const nextPageBtn = document.getElementById('nextPage');
 const pageInfoEl = document.getElementById('pageInfo');
+const pageJumpInput = document.getElementById('pageJumpInput');
 const startFromBeginningBtn = document.getElementById('startFromBeginning');
 const selectionInfoEl = document.getElementById('selectionInfo');
 const previewButton = document.getElementById('previewButton');
@@ -699,7 +700,16 @@ function toggleTheme() {
 themeButton.addEventListener('click', toggleTheme);
 
 // Auto-hide controls on mouse inactivity
+let floatModeEnteredAt = 0;
+const FLOAT_COOLDOWN_MS = 600;
+
 function resetMouseTimer() {
+  if (
+    document.body.classList.contains('document-floating') &&
+    Date.now() - floatModeEnteredAt < FLOAT_COOLDOWN_MS
+  ) {
+    return;
+  }
   isMouseActive = true;
   header.classList.remove('hidden');
   controls.classList.remove('hidden');
@@ -707,7 +717,11 @@ function resetMouseTimer() {
     progressSection.classList.remove('hidden');
   }
   app.classList.remove('all-hidden');
+  const wasFloating = document.body.classList.contains('document-floating');
   document.body.classList.remove('document-floating');
+  if (wasFloating && isPreviewOpen()) {
+    renderPreviewPage(previewCurrentPage, lastRenderedIndex);
+  }
 
   if (mouseTimeout) {
     clearTimeout(mouseTimeout);
@@ -723,8 +737,12 @@ function resetMouseTimer() {
     app.classList.add('all-hidden');
     if (isPreviewOpen()) {
       document.body.classList.add('document-floating');
+      floatModeEnteredAt = Date.now();
+      requestAnimationFrame(() => {
+        renderPreviewPage(previewCurrentPage, lastRenderedIndex);
+      });
     }
-  }, 3000); // Hide after 3 seconds of inactivity
+  }, 2000); // Hide after 2 seconds of inactivity
 }
 
 // Track mouse movement
@@ -821,7 +839,7 @@ function openPdfPreview() {
   selectedTextBlockIndex = null;
   updateSelectionInfo();
 
-  // Document-only: just the PDF synced to current word (no thumbnails/chrome)
+  generateThumbnails();
   renderPreviewPage(previewCurrentPage, fallbackIndex);
 }
 
@@ -1032,7 +1050,9 @@ async function renderPreviewPage(pageNum, highlightIndex = null) {
   if (!Number.isFinite(scale) || scale <= 0) {
     scale = 1;
   }
-
+  if (document.body.classList.contains('document-floating')) {
+    scale *= 0.85;
+  }
   scale = Math.max(scale, 0.1);
 
   const viewport = page.getViewport({ scale });
@@ -1134,6 +1154,25 @@ function updatePageNavigation() {
   pageInfoEl.textContent = `Page ${previewCurrentPage} of ${loadedPdfDoc.numPages}`;
   prevPageBtn.disabled = previewCurrentPage <= 1;
   nextPageBtn.disabled = previewCurrentPage >= loadedPdfDoc.numPages;
+  if (pageJumpInput) {
+    pageJumpInput.min = 1;
+    pageJumpInput.max = loadedPdfDoc.numPages;
+    pageJumpInput.value = previewCurrentPage;
+    pageJumpInput.placeholder = `1–${loadedPdfDoc.numPages}`;
+  }
+}
+
+// Jump to specific page
+function jumpToPage() {
+  if (!pageJumpInput || !loadedPdfDoc) return;
+  const page = parseInt(pageJumpInput.value, 10);
+  if (page >= 1 && page <= loadedPdfDoc.numPages) {
+    previewCurrentPage = page;
+    renderPreviewPage(previewCurrentPage, lastRenderedIndex);
+    updateThumbnailSelection();
+  } else {
+    pageJumpInput.value = previewCurrentPage;
+  }
 }
 
 // Navigate to previous page
@@ -1192,6 +1231,16 @@ if (prevPageBtn) {
 
 if (nextPageBtn) {
   nextPageBtn.addEventListener('click', goToNextPage);
+}
+
+if (pageJumpInput) {
+  pageJumpInput.addEventListener('change', jumpToPage);
+  pageJumpInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      jumpToPage();
+    }
+  });
 }
 
 if (startFromBeginningBtn) {

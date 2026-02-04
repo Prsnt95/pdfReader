@@ -6,6 +6,7 @@
   --border: #1e1e1e;
   --accent: #ffffff;
   --preview-width: clamp(420px, 52vw, 720px);
+  --float-preview-width: clamp(220px, 24vw, 320px);
 }
 
 :root[data-theme="light"] {
@@ -68,9 +69,9 @@ body.preview-open .app.all-hidden .reader {
   width: 100vw;
 }
 
-/* When floating, reader stays left of PDF so word isn't cut off */
+/* When floating, reader fills viewport; PDF is centered overlay */
 body.preview-open.document-floating .app.all-hidden .reader {
-  right: var(--preview-width);
+  right: 0;
   width: auto;
 }
 
@@ -88,27 +89,35 @@ body.document-floating .progress {
   display: none;
 }
 
-body.document-floating .reader,
+body.document-floating .reader {
+  overflow: hidden;
+  padding: 0 24px;
+}
+
 body.document-floating .word-container,
 body.document-floating .word,
 body.document-floating .multi-word-display,
 body.document-floating .multi-word {
-  overflow: visible;
+  overflow: hidden;
+  max-width: 100%;
 }
 
 body.document-floating .pdf-preview-modal {
-  width: var(--preview-width);
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: auto;
+  width: var(--float-preview-width) !important;
+  max-width: 320px !important;
+  height: min(45vh, 450px) !important;
+  max-height: 45vh !important;
+  top: unset !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: auto !important;
   border: none;
-  border-radius: 0;
-  box-shadow: none;
-  transform: translateX(0);
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  transform: none !important;
   pointer-events: auto;
   overflow: hidden;
-  background: var(--panel);
+  background: var(--bg);
 }
 
 body.document-floating .pdf-preview-modal .pdf-preview-header,
@@ -118,7 +127,12 @@ body.document-floating .pdf-preview-modal .pdf-preview-footer {
   display: none;
 }
 
-body.document-floating .pdf-preview-modal .pdf-preview-content,
+body.document-floating .pdf-preview-modal .pdf-preview-content {
+  padding: 0;
+  margin: 0;
+  background: var(--bg);
+}
+
 body.document-floating .pdf-preview-modal .pdf-preview-body,
 body.document-floating .pdf-preview-modal .pdf-main-view,
 body.document-floating .pdf-preview-modal .pdf-page-canvas-container {
@@ -139,19 +153,26 @@ body.document-floating .pdf-preview-modal .pdf-page-canvas-container {
   flex: 1;
   justify-content: center;
   align-items: flex-start;
-  overflow: auto;
+  overflow: hidden;
+}
+
+body.document-floating .pdf-preview-modal .pdf-main-view {
+  background: var(--bg);
 }
 
 body.document-floating .pdf-preview-modal:not(.active) {
   display: none;
 }
 
+/* Keep subtle shadow so document feels like it floats; blend with bg */
 body.document-floating #pdfPageCanvas {
-  box-shadow: none;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
 }
 
 body.document-floating .text-overlay {
   top: 0;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .app.drag-over {
@@ -783,6 +804,18 @@ button:disabled {
   pointer-events: auto;
 }
 
+body.document-floating .pdf-preview-modal {
+  width: var(--float-preview-width) !important;
+  max-width: 320px !important;
+  top: unset !important;
+  bottom: 0 !important;
+  left: auto !important;
+  right: 0 !important;
+  height: min(45vh, 450px) !important;
+  max-height: 45vh !important;
+  transform: none !important;
+}
+
 /* Document-only mode removed so users keep access to preview controls */
 
 @keyframes fadeIn {
@@ -920,6 +953,8 @@ button:disabled {
   cursor: pointer;
   transition: all 0.2s ease;
   background: white;
+  min-height: 48px;
+  flex-shrink: 0;
 }
 
 .page-thumbnail:hover {
@@ -958,6 +993,7 @@ button:disabled {
   position: relative;
   background: #ffffff;
   min-width: 0;
+  min-height: min(360px, 45vh);
 }
 
 :root[data-theme="light"] .pdf-main-view {
@@ -972,7 +1008,7 @@ button:disabled {
   justify-content: center;
   padding: 0;
   position: relative;
-  min-height: 0;
+  min-height: min(360px, 45vh);
 }
 
 #pdfPageCanvas {
@@ -1034,6 +1070,28 @@ button:disabled {
   font-size: 11px;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.page-navigation #pageJumpInput {
+  width: 52px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 11px;
+  font-family: inherit;
+  text-align: center;
+}
+
+.page-navigation #pageJumpInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.page-navigation #pageJumpInput::-webkit-inner-spin-button,
+.page-navigation #pageJumpInput::-webkit-outer-spin-button {
+  opacity: 1;
 }
 
 .page-navigation button:hover:not(:disabled) {
