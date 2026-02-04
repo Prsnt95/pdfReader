@@ -58,10 +58,14 @@ body {
   justify-content: center;
 }
 
-/* PDF panel on the right; reserve space so it doesn't overlap settings */
+/* PDF panel on the right; hide settings bar when sidebar is open */
 body.preview-open .app {
   padding-right: 0;
   margin-right: var(--preview-width);
+}
+
+body.preview-open .controls {
+  display: none;
 }
 
 body.preview-open .app.all-hidden .reader {
